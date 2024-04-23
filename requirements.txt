@@ -1,0 +1,7 @@
+yaml
+pillow
+TeraTTS
+ruaccent
+google-generativeai
+io
+transliterate
