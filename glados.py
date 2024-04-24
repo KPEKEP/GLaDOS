@@ -1,40 +1,55 @@
 print("Importing libraries...")
+import os
+import copy
 import yaml
 import time
-from PIL import ImageGrab, Image
+import json
+import random
+import shutil
 from TeraTTS import TTS
 from ruaccent import RUAccent
+from PIL import ImageGrab, Image
+from transliterate import translit
 import google.generativeai as genai
 from google.generativeai import GenerationConfig
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
-from transliterate import translit
-import random
-
-def capture_screen(resize_dimensions):
+    
+def capture_screen(folder, idx, all_screens):
     """Capture the screen, resize, and return PIL image"""
-    screenshot = ImageGrab.grab()
-    screenshot = screenshot.resize(resize_dimensions, Image.Resampling.LANCZOS)
-    screenshot.save("screen.png")
-    return screenshot
+    screenshot = ImageGrab.grab(all_screens=all_screens)
+    screenshot_filename = f"{folder}/screen_{idx}.png"
+    
+    screenshot.save(screenshot_filename)
+    return screenshot_filename
 
-def describe_image(model, prompt, image, history):
+def describe_image(model, prompt, image_path, history):
     """Send the image to Gemini Pro Vision API and get the description."""
-    message = {'role': 'user', 'parts': [prompt, image]}
+    message = {'role': 'user', 'parts': [prompt, image_path]}
     history.append(message)
-    response = model.generate_content(history, safety_settings={
+    
+    history_with_images = copy.deepcopy(history)
+    for item in history_with_images:
+        if len(item['parts'])>1:
+            item['parts'][1] = Image.open(item['parts'][1])
+                                          
+    response = model.generate_content(history_with_images, safety_settings={
         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
     })
     history.append({'role':'model', 'parts':[response.text]})
+
+    with open('history.json', 'w', encoding="utf-8") as f:
+        json.dump(history, f, indent=4, ensure_ascii=False)
+        
     return response.text
 
 def text_to_speech(text, tts, accentizer):
     """Process text and convert it to speech."""
     processed_text = accentizer.process_all(text.strip())
     audio = tts(processed_text, play=True, lenght_scale=1.1)
-    tts.save_wav(audio, "./description.wav")
+    #tts.save_wav(audio, "./description.wav")
 
 def main():
     print("GLaDOS starts...")
@@ -45,7 +60,11 @@ def main():
 
     # Create messages history
     history = []
-    
+    images_folder = config['screenshots_folder']
+    if os.path.exists(images_folder):
+        shutil.rmtree(images_folder)
+    os.makedirs(images_folder)
+
     # Read parameters
     api_key = config['api_key']
     temperature = float(config['temperature'])
@@ -55,7 +74,6 @@ def main():
     sleep_max = int(config['sleep_max'])
     max_tokens = int(config['max_tokens'])
     comment_chance = float(config['comment_chance'])
-    resize_dimensions = tuple(config['resize_dimensions'])
     prompt = str(config['prompt'])
 
 
@@ -64,7 +82,8 @@ def main():
     custom_dict = {'ГЛаДОС' : 'ГЛ+А+ДОС', 
                    'ГЛАДОС' : 'ГЛ+АДОС', 
                    'ГлаДОС' : 'Гл+аДОС',
-                   'ИИ' : '+И-+И'}
+                   'ИИ' : '+И-+И',
+                   'АИ': '+А-+И'}
     accentizer.load(omograph_model_size='turbo', use_dictionary=True, custom_dict=custom_dict)
 
     # Init TTS
@@ -81,8 +100,8 @@ def main():
             if random.random() <= comment_chance:
                 print("GLaDOS decides to comment!")
                 try:
-                    image = capture_screen(resize_dimensions)
-                    description = describe_image(model, prompt, image, history)
+                    image_path = capture_screen(images_folder, len(history), bool(config['capture_all_screens']))
+                    description = describe_image(model, prompt, image_path, history)
                     description = translit(description, 'ru')
                     print(f"GLaDOS thinks: \"{description}\"")
                 except Exception as e:

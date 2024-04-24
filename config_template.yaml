@@ -1,4 +1,6 @@
 api_key: "<YOUR_GEMINI_API_KEY_HERE>"
+screenshots_folder: './screenshots'
+capture_all_screens: False
 temperature: 0.8
 top_p : 1
 top_k : 32
@@ -6,7 +8,6 @@ max_tokens : 256
 sleep_min: 60 
 sleep_max: 360
 comment_chance: 0.7
-resize_dimensions: [1280, 720]
 prompt: |
     GLaDOS is a self-aware artificial intelligence supercomputer that was developed by Aperture Science for the Portal Research Lab.
     GLaDOS once went out of control and took over the Lab.
