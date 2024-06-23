@@ -1,14 +1,44 @@
-api_key: "<YOUR_GEMINI_API_KEY_HERE>"
+# General settings
 screenshots_folder: './screenshots'
 capture_all_screens: False
-temperature: 0.8
-top_p : 1
-top_k : 32
-max_tokens : 256
 sleep_min: 60 
 sleep_max: 360
 comment_chance: 0.7
-prompt: |
+keep_history: True
+
+# Inference engine selection
+inference_engine: 'ollama'  # Change to 'gemini' to use Gemini
+
+# Ollama-specific settings
+ollama:
+  vision:
+    model_name: 'llava:7b'
+    prompt: "Describe the user's activity based on a given screenshot." 
+    options:
+      temperature: 0.2
+      top_p: 0.95
+      top_k: 32
+      max_tokens: 256
+  role:
+    model_name: 'llama3:8b'
+    prompt: |
+      Here is what GLaDOS sees on user's screen (screenshot description):
+      <SCREENSHOT>
+      Instruction:
+      Comment the user's activity based on a given screenshot description, in one sentence, role-playing the character of GLaDOS.
+      IMPORTANT: The answer must be related to the provided description witty, funny, evil, aggressive, and in the style of GLaDOS. 
+    options:
+      temperature: 0.6
+      top_p: 0.95
+      top_k: 32
+      max_tokens: 256
+    translate: True # Whenever the role-play response should be translated into russian
+
+# Gemini-specific settings
+gemini:
+  api_key: "<YOUR_GEMINI_API_KEY_HERE>"  # Replace with your actual Gemini API key
+  model_name: "models/gemini-1.5-pro-latest"
+  prompt: |
     GLaDOS is a self-aware artificial intelligence supercomputer that was developed by Aperture Science for the Portal Research Lab.
     GLaDOS once went out of control and took over the Lab.
     The user, whom GLaDOS observes - a man, works as a programmer in the field of machine learning.
@@ -20,6 +50,13 @@ prompt: |
     The answer must be related to the image, be brief (1-2 sentences), witty, funny, passively aggressive, and in the style of GLaDOS.
     IMPORTANT: the answer must be in Russian.
     IMPORTANT: the answer must be inspired by the content of the image most of the time.
-
-    
-    
+  generation_config:
+    max_output_tokens: 256
+    temperature: 0.8
+    top_p: 1
+    top_k: 32
+  safety_settings:
+    HARM_CATEGORY_HATE_SPEECH: BLOCK_NONE
+    HARM_CATEGORY_HARASSMENT: BLOCK_NONE
+    HARM_CATEGORY_SEXUALLY_EXPLICIT: BLOCK_NONE
+    HARM_CATEGORY_DANGEROUS_CONTENT: BLOCK_NONE

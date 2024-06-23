@@ -4,3 +4,5 @@ TeraTTS
 ruaccent
 google-generativeai
 transliterate
+ollama
+transformers
